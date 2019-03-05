@@ -17,7 +17,7 @@
 
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
-from sklearn.cross_validation import KFold
+from sklearn.model_selection import KFold
 from joblib import Parallel, delayed
 
 def loss(w_tr, w_te):
