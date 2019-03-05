@@ -18,7 +18,8 @@
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
 from sklearn.model_selection import KFold
-from sklearn.externals.joblib import Parallel, delayed
+# from sklearn.externals.joblib import Parallel, delayed
+from joblib import Parallel, delayed
 
 def loss(w_tr, w_te):
     """ Model loss used to evaluate the estimated weights
