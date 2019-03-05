@@ -95,10 +95,12 @@ class NearestNeighborsRatioEstimator(object):
         self.n_te = X_te.shape[0]
 
         # build kd-trees for both domains
-        self.nbrs_tr = NearestNeighbors(n_neighbors=self.n_neighbors, algorithm='kd_tree').fit(X_tr)
-        self.nbrs_te = NearestNeighbors(n_neighbors=self.n_neighbors, algorithm='kd_tree').fit(X_te)
+        self.nbrs_tr = NearestNeighbors(
+            n_neighbors=self.n_neighbors, algorithm='kd_tree').fit(X_tr)
+        self.nbrs_te = NearestNeighbors(
+            n_neighbors=self.n_neighbors, algorithm='kd_tree').fit(X_te)
 
-    def fit_cv(self, X_tr, X_te, K_list, n_cv=5, n_jobs=0):
+    def fit_cv(self, X_tr, X_te, K_list, n_cv=5, n_jobs=0, shuffle=False, random_state=42):
         """ Fit the model using cross-validation to find an optimal number of K neighbors
             X_tr: training sample
             X_te: test sample
@@ -110,8 +112,8 @@ class NearestNeighborsRatioEstimator(object):
             n_jobs = len(K_list)
         n_train = X_tr.shape[0]
         n_test  = X_te.shape[0]
-        kf_tr   = KFold(n_train, n_folds=n_cv)
-        kf_te   = KFold(n_test,  n_folds=n_cv)
+        kf_tr   = KFold(n_train, n_splits=n_cv, shuffle=shuffle, random_state=random_state)
+        kf_te   = KFold(n_test,  n_splits=n_cv, shuffle=shuffle, random_state=random_state)
         self.losses = Parallel(n_jobs=n_jobs)(delayed(cv_loss)(X_tr,X_te,kf_tr,kf_te,K,n_cv) for K in K_list)
         self.n_neighbors = K_list[np.argmin(self.losses)]
         self.fit(X_tr,X_te)
