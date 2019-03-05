@@ -110,10 +110,10 @@ class NearestNeighborsRatioEstimator(object):
         """
         if n_jobs == 0:
             n_jobs = len(K_list)
-        n_train = X_tr.shape[0]
-        n_test  = X_te.shape[0]
-        kf_tr   = KFold(n_train, n_splits=n_cv, shuffle=shuffle, random_state=random_state)
-        kf_te   = KFold(n_test,  n_splits=n_cv, shuffle=shuffle, random_state=random_state)
+        # n_train = X_tr.shape[0]
+        # n_test  = X_te.shape[0]
+        kf_tr   = KFold(n_splits=n_cv, shuffle=shuffle, random_state=random_state).split(X_tr)
+        kf_te   = KFold(n_splits=n_cv, shuffle=shuffle, random_state=random_state).split(X_te)
         self.losses = Parallel(n_jobs=n_jobs)(delayed(cv_loss)(X_tr,X_te,kf_tr,kf_te,K,n_cv) for K in K_list)
         self.n_neighbors = K_list[np.argmin(self.losses)]
         self.fit(X_tr,X_te)
