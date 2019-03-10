@@ -115,6 +115,7 @@ class NearestNeighborsRatioEstimator(object):
             cv_loss)(X_tr,X_te,kf_tr,kf_te,K,n_cv) for K in K_list)
 
         self.n_neighbors = K_list[np.argmin(self.losses)]
+        print(f"Optimal K neighbors: {self.n_neighbors}")
         self.fit(X_tr,X_te)
 
     def compute_weights(self, X_ev):
