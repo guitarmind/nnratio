@@ -38,6 +38,7 @@ estimator = NearestNeighborsRatioEstimator()
 K_list = [2,4,8,16,32]
 estimator.fit_cv(x_tr,x_te,K_list)
 weights = estimator.compute_weights(x_ev)
+print(weights)
 
 # plot ratio estimates
 fig,ax = plt.subplots(1,2, figsize=(14,6))

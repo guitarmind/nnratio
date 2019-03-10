@@ -18,8 +18,7 @@
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
 from sklearn.model_selection import KFold
-# from sklearn.externals.joblib import Parallel, delayed
-from joblib import Parallel, delayed
+# from joblib import Parallel, delayed
 
 def loss(w_tr, w_te):
     """ Model loss used to evaluate the estimated weights
@@ -40,29 +39,25 @@ def cv_loss(X_tr, X_te, kf_tr, kf_te, K, n_cv=5):
         n_cv: number of folds used for cross-validation
 
         returns: cross-validation loss
-    """ 
-    tr_iter = iter(kf_tr)
-    te_iter = iter(kf_te)
-    
+    """
+
     cv_losses = np.zeros(n_cv)
-    
+
     for i in range(n_cv):
-        tr_ind, tr_val_ind = tr_iter.next()
-        te_ind, te_val_ind = te_iter.next()
-        
-        tr     = X_tr[tr_ind,:]
-        tr_val = X_tr[tr_val_ind,:] 
-        te     = X_te[te_ind,:]
-        te_val = X_te[te_val_ind,:]
-        
-        knn_model = NearestNeighborsRatioEstimator(n_neighbors=K)
-        knn_model.fit(tr, te)
-        
-        w_tr   = knn_model.compute_weights(tr_val)
-        w_te   = knn_model.compute_weights(te_val)
-        
-        cv_losses[i] = loss(w_tr,w_te)
-        
+        for (tr_ind, tr_val_ind), (te_ind, te_val_ind) in zip(kf_tr, kf_te):
+            tr     = X_tr[tr_ind,:]
+            tr_val = X_tr[tr_val_ind,:] 
+            te     = X_te[te_ind,:]
+            te_val = X_te[te_val_ind,:]
+
+            knn_model = NearestNeighborsRatioEstimator(n_neighbors=K)
+            knn_model.fit(tr, te)
+
+            w_tr   = knn_model.compute_weights(tr_val)
+            w_te   = knn_model.compute_weights(te_val)
+
+            cv_losses[i] = loss(w_tr,w_te)
+
     val_loss = np.mean(cv_losses)
     return val_loss
 
@@ -96,6 +91,7 @@ class NearestNeighborsRatioEstimator(object):
         self.n_te = X_te.shape[0]
 
         # build kd-trees for both domains
+        print(X_tr.shape, X_te.shape)
         self.nbrs_tr = NearestNeighbors(
             n_neighbors=self.n_neighbors, algorithm='kd_tree').fit(X_tr)
         self.nbrs_te = NearestNeighbors(
@@ -111,11 +107,12 @@ class NearestNeighborsRatioEstimator(object):
         """
         if n_jobs == 0:
             n_jobs = len(K_list)
-        # n_train = X_tr.shape[0]
-        # n_test  = X_te.shape[0]
+
         kf_tr   = KFold(n_splits=n_cv, shuffle=shuffle, random_state=random_state).split(X_tr)
         kf_te   = KFold(n_splits=n_cv, shuffle=shuffle, random_state=random_state).split(X_te)
-        self.losses = Parallel(n_jobs=n_jobs)(delayed(cv_loss)(X_tr,X_te,kf_tr,kf_te,K,n_cv) for K in K_list)
+        self.losses = [cv_loss(X_tr,X_te,kf_tr,kf_te,K,n_cv) for K in K_list]
+        # self.losses = Parallel(n_jobs=n_jobs)(delayed(
+        #     cv_loss)(X_tr,X_te,kf_tr,kf_te,K,n_cv) for K in K_list)
         self.n_neighbors = K_list[np.argmin(self.losses)]
         self.fit(X_tr,X_te)
 
@@ -131,7 +128,7 @@ class NearestNeighborsRatioEstimator(object):
         
         # compute weights
         weights = np.zeros(X_ev.shape[0])
-        for i in xrange(X_ev.shape[0]):
+        for i in range(X_ev.shape[0]):
             # count number of numerator sample within the current radius of the query sample
             weights[i] = len(self.nbrs_te.radius_neighbors(X_ev[i,:].reshape(1, -1), radius=radii[i], return_distance=False)[0])
         # divide K denominator samples and normalize by the ratio of denominator to numerator samples
