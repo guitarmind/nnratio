@@ -92,7 +92,6 @@ class NearestNeighborsRatioEstimator(object):
         self.n_te = X_te.shape[0]
 
         # build kd-trees for both domains
-        print(X_tr.shape, X_te.shape)
         self.nbrs_tr = NearestNeighbors(
             n_neighbors=self.n_neighbors, algorithm='kd_tree').fit(X_tr)
         self.nbrs_te = NearestNeighbors(
