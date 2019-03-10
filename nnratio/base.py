@@ -18,7 +18,8 @@
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
 from sklearn.model_selection import KFold
-# from joblib import Parallel, delayed
+from joblib import Parallel, delayed
+
 
 def loss(w_tr, w_te):
     """ Model loss used to evaluate the estimated weights
@@ -110,9 +111,10 @@ class NearestNeighborsRatioEstimator(object):
 
         kf_tr   = KFold(n_splits=n_cv, shuffle=shuffle, random_state=random_state).split(X_tr)
         kf_te   = KFold(n_splits=n_cv, shuffle=shuffle, random_state=random_state).split(X_te)
-        self.losses = [cv_loss(X_tr,X_te,kf_tr,kf_te,K,n_cv) for K in K_list]
-        # self.losses = Parallel(n_jobs=n_jobs)(delayed(
-        #     cv_loss)(X_tr,X_te,kf_tr,kf_te,K,n_cv) for K in K_list)
+        kf_tr, kf_te = list(kf_tr), list(kf_te)
+        self.losses = Parallel(n_jobs=n_jobs)(delayed(
+            cv_loss)(X_tr,X_te,kf_tr,kf_te,K,n_cv) for K in K_list)
+
         self.n_neighbors = K_list[np.argmin(self.losses)]
         self.fit(X_tr,X_te)
 
