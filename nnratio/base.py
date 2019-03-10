@@ -19,6 +19,7 @@ import numpy as np
 from sklearn.neighbors import NearestNeighbors
 from sklearn.model_selection import KFold
 from joblib import Parallel, delayed
+import gc
 
 
 def loss(w_tr, w_te):
@@ -42,9 +43,11 @@ def cv_loss(X_tr, X_te, kf_tr, kf_te, K, n_cv=5):
         returns: cross-validation loss
     """
 
+    print(f"[{n_cv}-fold Cross validtation for K={K}]")
     cv_losses = np.zeros(n_cv)
 
     for i in range(n_cv):
+        print(f"Fold {i+1} ......")
         for (tr_ind, tr_val_ind), (te_ind, te_val_ind) in zip(kf_tr, kf_te):
             tr     = X_tr[tr_ind,:]
             tr_val = X_tr[tr_val_ind,:] 
@@ -57,7 +60,10 @@ def cv_loss(X_tr, X_te, kf_tr, kf_te, K, n_cv=5):
             w_tr   = knn_model.compute_weights(tr_val)
             w_te   = knn_model.compute_weights(te_val)
 
-            cv_losses[i] = loss(w_tr,w_te)
+            cv_losses[i] = loss(w_tr, w_te)
+
+            del knn_model, tr, tr_val, te, te_val, w_tr, w_te
+            gc.collect()
 
     val_loss = np.mean(cv_losses)
     return val_loss
@@ -103,16 +109,23 @@ class NearestNeighborsRatioEstimator(object):
             X_te: test sample
             K_list: list of K values to consider for cross-validation
             n_cv: number of folds for cross-validation
-            n_jobs: number of jobs to use when running cross-validation in parallel, if 0, take len(K_list) jobs
+            n_jobs: number of jobs to use when running cross-validation in parallel,
+                    If 0 or 1, run jobs sequentially.
+                    If -1, take len(K_list) jobs.
         """
-        if n_jobs == 0:
+        if n_jobs == -1:
             n_jobs = len(K_list)
 
         kf_tr   = KFold(n_splits=n_cv, shuffle=shuffle, random_state=random_state).split(X_tr)
         kf_te   = KFold(n_splits=n_cv, shuffle=shuffle, random_state=random_state).split(X_te)
         kf_tr, kf_te = list(kf_tr), list(kf_te)
-        self.losses = Parallel(n_jobs=n_jobs)(delayed(
-            cv_loss)(X_tr,X_te,kf_tr,kf_te,K,n_cv) for K in K_list)
+        if n_jobs == 0 or n_jobs == 1:
+            self.losses = []
+            for K in K_list:
+                self.losses.append(cv_loss(X_tr,X_te,kf_tr,kf_te,K,n_cv))
+        else:
+            self.losses = Parallel(n_jobs=n_jobs)(delayed(
+                cv_loss)(X_tr,X_te,kf_tr,kf_te,K,n_cv) for K in K_list)
 
         self.n_neighbors = K_list[np.argmin(self.losses)]
         print(f"Optimal K neighbors: {self.n_neighbors}")
